@@ -6,10 +6,8 @@
   var MAX_VALUES = 1000;
   // Offset from the right of the screen.
   var GRAPH_RIGHT_OFFSET = 500;
-
   // The graph line width.
   var LINE_WIDTH = 10;
-
   // Line color.
   var LINE_COLOR = '#259a17';
 
