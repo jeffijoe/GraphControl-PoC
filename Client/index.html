@@ -2,24 +2,27 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Graph Control</title>
-    <link rel="stylesheet" href="/main.css">
+  <meta charset="UTF-8">
+  <title>Graph Control</title>
+  <link rel="stylesheet" href="/main.css">
 </head>
 
 <body>
-    <canvas id="graph" ></canvas>
+  <!-- Canvas for drawing. -->
+  <canvas id="graph"></canvas>
 
-    <script src="//code.jquery.com/jquery.js"></script>
-    <script src="/requestAnimationFrame.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/graph.js"></script>
-    <script>
-    var socket = io();
-    socket.on('data', function(msg){
-      Graph.receive(msg.value);
-    });
-    </script>
+  <script src="//code.jquery.com/jquery.js"></script>
+  <script src="/requestAnimationFrame.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/graph.js"></script>
+  <script>
+  // Connect to our socket.io server.
+  var socket = io();
+  // When we receive data, push it to the graph.
+  socket.on('data', function(msg) {
+    Graph.receive(msg.value);
+  });
+  </script>
 </body>
 
 </html>

@@ -20,19 +20,14 @@ namespace GraphControl.Server
         #region Fields
 
         /// <summary>
-        ///     The current value.
-        /// </summary>
-        private float currentValue;
-
-        /// <summary>
-        ///     The simulation direction.
-        /// </summary>
-        private SimulationDirection simulationDirection;
-
-        /// <summary>
         ///     The tcp.
         /// </summary>
-        private TcpListener tcp;
+        private readonly TcpListener tcp;
+
+        /// <summary>
+        ///     The last value, used to make sure we dont send the same value again and again.
+        /// </summary>
+        private float lastValue;
 
         /// <summary>
         ///     The token.
@@ -100,11 +95,16 @@ namespace GraphControl.Server
             {
                 while (!this.token.IsCancellationRequested)
                 {
-                    Console.WriteLine("Waiting for client...");
                     var client = this.tcp.AcceptTcpClient();
-                    Console.WriteLine("Client connected!");
                     while (client.Connected)
                     {
+                        if (Math.Abs(this.lastValue - this.Value) < 1)
+                        {
+                            Thread.Sleep(5);
+                            continue;
+                        }
+
+                        this.lastValue = this.Value;
                         var buf = BitConverter.GetBytes(this.Value);
                         var stream = client.GetStream();
 
@@ -118,7 +118,7 @@ namespace GraphControl.Server
                     }
                 }
             }
-            catch (SocketException e)
+            catch (SocketException)
             {
             }
             finally

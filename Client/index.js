@@ -23,26 +23,3 @@ graphClient.start(function (value) {
     value: value
   });
 });
-
-// // Simulation
-// var number = 0;
-// var direction = 0;
-// var INCREASING = 1;
-// var DECREASING = 2;
-// var GROWTH = 2.5;
-// setInterval(function () {
-//   if(number <= 0)
-//     direction = INCREASING;
-//   else if(number >= 255)
-//     direction = DECREASING;
-  
-//   if(direction == INCREASING) {
-//     number += GROWTH;
-//   } else if(direction == DECREASING) {
-//     number -= GROWTH;
-//   }
-
-//   io.emit('data', {
-//     value: number
-//   });
-// }, 30);
