@@ -6,6 +6,7 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var graphClient = require('./client.js');
+var ip = process.argv[2] || '127.0.0.1';
 
 // Serve static files
 app.use(express.static("public"));
@@ -22,7 +23,7 @@ http.listen(3000, function(){
 
 // Start the Graph client. Values are pushed from the server to this instance,
 // and we're sending it down the wire to the webbrowser.
-graphClient.start(function (value) {
+graphClient.start(ip, function (value) {
   io.emit('data', {
     value: value
   });
