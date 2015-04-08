@@ -1,0 +1,15 @@
+{
+  "name": "GraphControlClient",
+  "version": "0.0.1",
+  "description": "The Client consists of a Node.js TCP client, that also acts as a webserver\r pushing the data from the PIC client to the webbrowser.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jeff Hansen",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.12.3",
+    "socket.io": "^1.3.5"
+  }
+}
