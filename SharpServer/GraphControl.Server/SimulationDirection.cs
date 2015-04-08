@@ -1,17 +1,22 @@
-﻿namespace GraphControl.Server
+﻿// GraphControl Server
+// - SimulationDirection.cs
+// Author: 
+//   Jeff Hansen <jeff@jeffijoe.com>
+// Copyright (C) 2015. All rights reserved.
+namespace GraphControl.Server
 {
     /// <summary>
-    /// The simulation direction.
+    ///     The simulation direction.
     /// </summary>
     internal enum SimulationDirection
     {
         /// <summary>
-        /// The increasing.
+        ///     The increasing.
         /// </summary>
         Increasing, 
 
         /// <summary>
-        /// The decreasing.
+        ///     The decreasing.
         /// </summary>
         Decreasing
     }

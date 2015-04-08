@@ -21,7 +21,7 @@ namespace GraphControl.Windows
         /// <summary>
         ///     The server.
         /// </summary>
-        private GraphServer server;
+        private readonly GraphServer server;
 
         #endregion
 
@@ -65,7 +65,7 @@ namespace GraphControl.Windows
         /// <param name="e">
         /// The e.
         /// </param>
-        private void tbValue_ValueChanged(object sender, EventArgs e)
+        private void TbValueValueChanged(object sender, EventArgs e)
         {
             var value = (float)this.tbValue.Value / 10;
             this.server.Value = value;

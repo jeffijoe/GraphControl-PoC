@@ -39,7 +39,7 @@
             this.tbValue.Name = "tbValue";
             this.tbValue.Size = new System.Drawing.Size(417, 45);
             this.tbValue.TabIndex = 0;
-            this.tbValue.ValueChanged += new System.EventHandler(this.tbValue_ValueChanged);
+            this.tbValue.ValueChanged += new System.EventHandler(this.TbValueValueChanged);
             // 
             // FrmMain
             // 

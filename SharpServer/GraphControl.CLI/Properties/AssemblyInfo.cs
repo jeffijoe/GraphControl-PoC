@@ -1,5 +1,10 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿// GraphControl Server
+// - AssemblyInfo.cs
+// Author: 
+//   Jeff Hansen <jeff@jeffijoe.com>
+// Copyright (C) 2015. All rights reserved.
+
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
@@ -23,12 +28,10 @@ using System.Runtime.InteropServices;
 [assembly: Guid("e6555124-0f95-45df-9f79-e8cbccb12651")]
 
 // Version information for an assembly consists of the following four values:
-//
 //      Major Version
 //      Minor Version 
 //      Build Number
 //      Revision
-//
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]

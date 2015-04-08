@@ -11,7 +11,7 @@ using GraphControl.Server;
 namespace GraphControl.CLI
 {
     /// <summary>
-    /// The program.
+    ///     The program.
     /// </summary>
     internal class Program
     {

@@ -124,7 +124,9 @@ namespace GraphControl.Server
             finally
             {
                 if (!this.token.IsCancellationRequested)
+                {
                     this.Receive();
+                }
             }
         }
 
