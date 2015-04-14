@@ -34,10 +34,12 @@
             // 
             // tbValue
             // 
+            this.tbValue.LargeChange = 50;
             this.tbValue.Location = new System.Drawing.Point(12, 12);
             this.tbValue.Maximum = 2550;
             this.tbValue.Name = "tbValue";
             this.tbValue.Size = new System.Drawing.Size(417, 45);
+            this.tbValue.SmallChange = 10;
             this.tbValue.TabIndex = 0;
             this.tbValue.ValueChanged += new System.EventHandler(this.TbValueValueChanged);
             // 
