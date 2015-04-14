@@ -55,7 +55,7 @@ typedef enum _BOOL { FALSE = 0, TRUE = 1 } BOOL;
 #define bool char
 #define true 1
 #define false 0
-#define FluxLimit 5;
+#define FluxLimit 10;
 
 //Var Assignment
 unsigned char myMacAddr[6]; // my MAC address
@@ -238,6 +238,8 @@ typedef struct
   unsigned short uddata[120];             // 200-80
 } TcpStruct, *PTcpStruct;
 
+PTcpStruct TcpData;
+
 typedef struct
 {
   unsigned int SrcIP[4];
@@ -306,12 +308,14 @@ typedef struct RSV
 
 RXStruct *RXData;
 
+PPseudoStruct PseudoData;
+
 // Custom funcs
 bool HandleArpPackage(PArpStruct arpData);
 void HandleUdpPackage(PUdpStruct udpData);
 void HandleTcpPackage(PTcpStruct tcpData);
 bool IsThisDevice(unsigned short ipAddr[]);
-void SendMessage(void);
+void SendMessage(PTcpStruct TcpData);
 
 // Proto type
 void MACInit(void);

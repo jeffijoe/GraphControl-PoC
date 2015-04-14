@@ -34,6 +34,7 @@ ackdt_ssp1con2_bit
 acken
 acken_bit
 acken_ssp1con2_bit
+acknumber
 ackstat
 ackstat_bit
 ackstat_ssp1con2_bit
@@ -1211,7 +1212,6 @@ oerr1
 oerr1_bit
 oerr2
 oerr2_bit
-oldadc_rd
 osccon
 osccon2
 oscfie
@@ -1425,6 +1425,9 @@ pr6
 preinc0
 preinc1
 preinc2
+printipaddr
+printmacaddr
+printtcppacket
 prisd
 prisd_bit
 prod
@@ -1434,6 +1437,7 @@ prsen
 prsen_bit
 psa
 psa_bit
+pseudodata
 pseudopacket
 pss1ac0
 pss1ac0_bit
@@ -1729,7 +1733,7 @@ sendb2
 sendb2_bit
 sendmessage
 sendsystemreset
-sequencenumber
+seqnumber
 server_banner
 setfdz32
 setfov32
@@ -2155,6 +2159,7 @@ tblptru
 tcp_ack_num
 tcp_checksum
 tcp_seq_num
+tcpdata
 tcpdatalen
 tcpflags
 tcplen

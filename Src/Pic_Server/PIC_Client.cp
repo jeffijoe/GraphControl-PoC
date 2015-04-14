@@ -1,10 +1,10 @@
-#line 1 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
-#line 1 "c:/users/bjarke/desktop/pic_client/pic_client.h"
+#line 1 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
+#line 1 "c:/users/bjarke/desktop/graphcontrol-poc/src/pic_server/pic_client.h"
 
 
 
 typedef enum _BOOL { FALSE = 0, TRUE = 1 } BOOL;
-#line 61 "c:/users/bjarke/desktop/pic_client/pic_client.h"
+#line 61 "c:/users/bjarke/desktop/graphcontrol-poc/src/pic_server/pic_client.h"
 unsigned char myMacAddr[6];
 unsigned char myIpAddr[4] = {192, 168, 5, 150 };
 unsigned RegValue;
@@ -127,7 +127,7 @@ typedef struct
  unsigned short Proto;
  unsigned int DataLen;
 } Pseudohdr, *PPseudoStruct;
-#line 200 "c:/users/bjarke/desktop/pic_client/pic_client.h"
+#line 200 "c:/users/bjarke/desktop/graphcontrol-poc/src/pic_server/pic_client.h"
 typedef struct
 {
  unsigned SourcePort;
@@ -168,6 +168,8 @@ typedef struct
  TcpHdr tcp;
  unsigned short uddata[120];
 } TcpStruct, *PTcpStruct;
+
+PTcpStruct TcpData;
 
 typedef struct
 {
@@ -237,12 +239,14 @@ typedef struct RSV
 
 RXStruct *RXData;
 
+PPseudoStruct PseudoData;
+
 
  char  HandleArpPackage(PArpStruct arpData);
 void HandleUdpPackage(PUdpStruct udpData);
 void HandleTcpPackage(PTcpStruct tcpData);
  char  IsThisDevice(unsigned short ipAddr[]);
-void SendMessage(void);
+void SendMessage(PTcpStruct TcpData);
 
 
 void MACInit(void);
@@ -285,22 +289,20 @@ void ShowPacket(unsigned short* Buffer, unsigned len);
 
 void ClrPacket();
 #line 1 "e:/mikroelektronika 2015/mikroc pro for pic/include/built_in.h"
-#line 4 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
-unsigned int oldadc_rd = 0;
+#line 4 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 unsigned int adc_rd = 0;
 PTcpStruct targetPacket;
 unsigned int destinationPort = 0;
 unsigned char destinationIp[4];
 unsigned char destinationMac[6];
-unsigned long sequenceNumber = 0;
+unsigned long seqNumber = 0;
+unsigned long ackNumber = 0;
 
 void main() {
  PArpStruct arpData;
  PIpStruct ipData;
  char buffer[50];
- int i;
- int lessThan = 0;
- int moreThan = 0;
+ int i = 0, lessThan = 0, moreThan = 0, oldadc_rd = 0;
 
  ANSELA = 0x02;
  ANSELC = 0;
@@ -316,8 +318,8 @@ void main() {
  do {
  adc_rd = ADC_Read(1);
 
- lessThan = oldadc_rd -  5; ;
- moreThan = oldadc_rd +  5; ;
+ lessThan = oldadc_rd -  10; ;
+ moreThan = oldadc_rd +  10; ;
 
  if (ChkPck()) {
 
@@ -352,66 +354,105 @@ void main() {
  else if (destinationPort != 0 && (lessThan > adc_rd || moreThan < adc_rd))
  {
  oldadc_rd = adc_rd;
- SendMessage();
+ UART1_Write_Text("\n\rStart sending packet!\n\r");
+ TcpData = (PTcpStruct)Packet;
+ SendMessage((PTcpStruct) TcpData);
+ UART1_Write_Text("\n\rFinished sending packet!\n\r");
  }
  } while ( 1 );
 }
 
-void SendMessage(void) {
- PTcpStruct tcpPacket;
- PPseudoStruct pseudoData;
- int dataLen;
+char* PrintIpAddr(unsigned short address[4])
+{
+ char buffer[50];
+ sprintf(buffer, "%d . %d . %d . %d\0", (int)address[0], (int)address[1], (int)address[2], (int)address[3]);
+ return buffer;
+}
 
- intToShort.IntVal = adc_rd;
+char* PrintMacAddr(unsigned short address[6])
+{
+ char buffer[50];
+ sprintf(buffer, "%x : %x : %x : %x : %x : %x\0",
+ (int)address[0], (int)address[1], (int)address[2], (int)address[3], (int)address[4], (int)address[5]);
+ return buffer;
+}
 
- tcpPacket->tcp.SourcePort = 0x8D13;
- tcpPacket->tcp.DestPort = destinationPort;
- tcpPacket->uddata[0] = IntToShort.ShortVal[0];
- tcpPacket->uddata[1] = IntToShort.ShortVal[1];
- tcpPacket->tcp.DataOffset.Reserved3 = 0x00;
- tcpPacket->tcp.DataOffset.Val = 0x05;
- tcpPacket->tcp.UrgentPointer = 0x00;
+void PrintTcpPacket(PTcpStruct TcpData)
+{
+ char buffer[50];
 
- TCPDataLen = dataLen - (tcpPacket->tcp.DataOffset.Val * 4);
- sequenceNumber += TCPDataLen;
+ sprintf(buffer, "\n\rSource IP: %s", PrintIpAddr(TcpData->ip.ScrAddr));
+ UART1_Write_Text(buffer);
 
- tcpPacket->tcp.SeqNumber = SwapByteOrder(sequenceNumber);
- tcpPacket->tcp.AckNumber = 0x00000000;
- tcpPacket->tcp.Flags.byte = 0;
+ sprintf(buffer, "\n\rDest IP: %s", PrintIpAddr(TcpData->ip.DestAddr));
+ UART1_Write_Text(buffer);
+
+ sprintf(buffer, "\n\rSource Mac: %s", PrintMacAddr(TcpData->eth.ScrMac));
+ UART1_Write_Text(buffer);
+
+ sprintf(buffer, "\n\rDest Mac: %s", PrintMacAddr(TcpData->eth.DestMac));
+ UART1_Write_Text(buffer);
+}
+
+void SendMessage(PTcpStruct TcpData) {
+ unsigned IpTotLen, TcpTotLen, TxtLen, TcpDataLen;
+ unsigned short i;
+
+ IntToShort.IntVal = adc_rd;
+
+ TcpData->tcp.Flags.byte = 0;
+
+ UART1_Write_Text("\n\rProto is PSHACK");
+ TcpDataLen = sizeof(int);
+
+ TcpData->uddata[0] = IntToShort.ShortVal[0];
+ TcpData->uddata[1] = IntToShort.ShortVal[1];
+ TcpData->uddata[2] = 0x00;
+ TxtLen = 2;
+
+ TcpData->tcp.SeqNumber = SwapByteOrder(seqNumber);
+ TcpData->tcp.AckNumber = SwapByteOrder(ackNumber);
+ TcpData->tcp.Flags.bits.flagPSH = 1;
+ TcpData->tcp.Flags.bits.flagACK = 1;
+
+ TcpData->tcp.Window = 0x0004;
+ TcpData->tcp.DataOffset.Reserved3 = 0x00;
+ TcpData->tcp.DataOffset.Val = 0x05;
+
+ TcpLen = sizeof(TcpHdr) + TxtLen;
+
+ TcpData->tcp.Checksum = 0;
+ TcpData->tcp.UrgentPointer = 0x00;
+
+ TcpData->tcp.SourcePort = 0x8D13;
+ TcpData->tcp.DestPort = destinationPort;
+
+ IpTotLen = sizeof(IpHdr) + TcpLen;
+
+ TcpData->ip.Proto =  6 ;
+ TcpData->ip.Ver_Len = 0x45;
+ TcpData->ip.Tos = 0x00;
+ TcpData->ip.PktLen =  ((IpTotLen >> 8) | (IpTotLen <<8)) ;
+ TcpData->ip.Id = 0x287;
+ TcpData->ip.Offset = 0x0000;
+ TcpData->ip.Ttl = 128;
+
+ TcpData->eth.Type = 0x0008;
 
 
+ memcpy(TcpData->ip.ScrAddr, destinationIp, 4);
+ memcpy(TcpData->ip.DestAddr, MyIpAddr, 4);
 
- tcpPacket->tcp.Flags.bits.flagACK = 1;
+ memcpy(TcpData->eth.DestMac, MyMacAddr, 6);
+ memcpy(TcpData->eth.ScrMac, destinationMac, 6);
 
- tcpPacket->tcp.Flags.bits.flagPSH = 1;
+ PseudoData = (PPseudoStruct) PseudoPacket;
 
- dataLen = sizeof(IpStruct) + 2;
+ Tcp_CheckSum((PPseudoStruct) PseudoData, (PTcpStruct) TcpData);
 
+ PrintTcpPacket(TcpData);
 
- memcpy(tcpPacket->ip.ScrAddr, destinationIp, 4);
- memcpy(tcpPacket->ip.DestAddr, MyIpAddr, 4);
-
- TCPLen = sizeof(TcpHdr) + 2;
-
- tcpPacket->ip.Proto =  6 ;
- tcpPacket->ip.Ver_Len = 0x45;
- tcpPacket->ip.Tos = 0x00;
- tcpPacket->ip.PktLen =  ((sizeof(IpHdr) + TCPLen >> 8) | (sizeof(IpHdr) + TCPLen <<8)) ;
- tcpPacket->ip.Id = 0x287;
- tcpPacket->ip.Offset = 0x0000;
- tcpPacket->ip.Ttl = 128;
- tcpPacket->ip.PktLen =  ((dataLen >> 8) | (dataLen <<8)) ;
-
- memcpy(tcpPacket->eth.ScrMac, destinationMac, 6);
- memcpy(tcpPacket->eth.DestMac, myMacAddr, 6);
-
- tcpPacket->eth.Type = 0x0008;
-
- pseudoData = (PPseudoStruct) PseudoPacket;
- Tcp_CheckSum((PPseudoStruct) pseudoData, (PTcpStruct) tcpPacket);
-
- UART1_Write_Text("Writing packet!");
- Trans_TCP((PTcpStruct) tcpPacket, PckLen, TCPLen);
+ Trans_TCP ((PTcpStruct) TcpData, PckLen, TCPLen);
 }
 
  char  HandleArpPackage(PArpStruct arpData) {
@@ -451,6 +492,10 @@ void HandleTcpPackage(PTcpStruct tcpData)
  UART1_Write_Text("TCP Pakke modtaget port 5005\n\r");
 
  tcpData = (PTcpStruct) Packet;
+
+ seqNumber = SwapByteOrder(tcpData->tcp.AckNumber);
+ ackNumber = SwapByteOrder(tcpData->tcp.SeqNumber);
+
  pseudoData = (PPseudoStruct) PseudoPacket;
  Tcp_CheckSum((PPseudoStruct) pseudoData, (PTcpStruct) tcpData);
 
@@ -485,15 +530,9 @@ void HandleTcpPackage(PTcpStruct tcpData)
  TCP_Ack_Num = tcpData->tcp.SeqNumber;
  TCP_Ack_Num = SwapByteOrder(TCP_Ack_Num);
  TCP_Ack_Num += TCPDataLen;
- sequenceNumber = TCP_Ack_Num;
- sprintf(buffer, "%d", sequenceNumber);
- UART1_Write_Text("\n\rSequence: ");
- UART1_Write_Text(buffer);
- UART1_Write_Text("\n\r");
-
  TCP_Ack_Num = SwapByteOrder(TCP_Ack_Num);
 
- sprintf(buffer, "%d", sequenceNumber);
+ sprintf(buffer, "%d", seqNumber);
  UART1_Write_Text("\n\rAfter: ");
  UART1_Write_Text(buffer);
  UART1_Write_Text("\n\r");
@@ -526,10 +565,14 @@ void HandleTcpPackage(PTcpStruct tcpData)
  }
 
  UART1_Write_Text("\n\rGemmer data");
- destinationPort = tcpData->tcp.SourcePort;
+ destinationPort = tcpData->tcp.DestPort;
+ memcpy(destinationMac, tcpData->eth.DestMac, 6);
+ memcpy(destinationIp, tcpData->ip.DestAddr, 4);
 
- memcpy(destinationMac, tcpData->eth.ScrMac, 6);
- memcpy(destinationIp, tcpData->ip.ScrAddr, 4);
+ sprintf(buffer, "\n\rDestination IP variable: %s", PrintIpAddr(destinationIp));
+ UART1_Write_Text(buffer);
+ sprintf(buffer, "\n\rDestination Mac variable: %s", PrintMacAddr(destinationMac));
+ UART1_Write_Text(buffer);
 
  } else if (TCPFlags.byte ==  (0x11) ) {
  UART1_Write_Text("TCP FIN ACK Pakke modtaget\n\r");
@@ -590,7 +633,7 @@ unsigned int Tcp_CheckSum(PPseudoStruct TcpPseudoData, PTcpStruct TcpData) {
 
  TcpCkSum = Cksum( 0  + ( 1518  + 100) , 12, 0);
 
- ShowPacket((unsigned short * ) TcpPseudoData, 22);
+
  return TcpCkSum;
 }
 
@@ -793,7 +836,7 @@ unsigned int CkSum(unsigned offset, unsigned Len, unsigned short Seed) {
  read = (ReadReg( (0x10u) ));
  return read;
 }
-#line 529 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 568 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void MACInit(void) {
 
 
@@ -874,7 +917,7 @@ unsigned GetFrame() {
  if (RXData->ReceiveOk) return (RxLen);
  else return 0;
 }
-#line 632 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 671 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void ChkLink(void) {
  unsigned w;
 
@@ -919,7 +962,7 @@ void ChkLink(void) {
  RegValue = ReadReg( (0x1Eu) );
  } while (RegValue &  (1<<1) );
 }
-#line 711 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 750 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void SendSystemReset(void) {
 
  do {
@@ -950,7 +993,7 @@ void SendSystemReset(void) {
  Delay_Ms(1);
 
  }
-#line 760 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 799 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 unsigned ReadReg(unsigned short int wAddress) {
 
  {
@@ -983,7 +1026,7 @@ unsigned ReadReg(unsigned short int wAddress) {
  return w;
  }
  }
-#line 817 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 856 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void ReadMemoryWindow(unsigned short vWindow, unsigned short * vData, unsigned wLength) {
  unsigned short vOpcode;
 
@@ -1013,7 +1056,7 @@ void ReadN(unsigned char vOpcode, unsigned char * vData, unsigned wDataLen) {
 
 
 }
-#line 864 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 903 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 unsigned ReadPHYReg(unsigned char Register) {
  unsigned wResult;
 
@@ -1033,7 +1076,7 @@ unsigned ReadPHYReg(unsigned char Register) {
 
  return wResult;
  }
-#line 902 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 941 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void WriteReg(unsigned short int wAddress, unsigned wValue) {
 
  {
@@ -1066,7 +1109,7 @@ void WriteReg(unsigned short int wAddress, unsigned wValue) {
 
  }
  }
-#line 957 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 996 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void WriteMemoryWindow(unsigned short vWindow, unsigned short * vData, unsigned wLength) {
  unsigned short vOpcode;
 
@@ -1096,7 +1139,7 @@ void WriteN(unsigned char vOpcode, unsigned short * vData, unsigned wDataLen) {
   do{SPI_Ethernet_CS = 1;}while(0) ;
 
 }
-#line 1005 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 1044 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void WritePHYReg(unsigned char Register, unsigned short int Data) {
 
  WriteReg( (0x54u) , 0x0100 | Register);
@@ -1107,7 +1150,7 @@ void WritePHYReg(unsigned char Register, unsigned short int Data) {
 
  while (ReadReg( (0x6Au) ) &  (1) );
  }
-#line 1033 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 1072 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void BFSReg(unsigned short int wAddress, unsigned short int wBitMask) {
 
  {
@@ -1155,7 +1198,7 @@ void BFCReg(unsigned short int wAddress, unsigned short int wBitMask) {
  Execute2( (0x5u<<5)  | (wAddress & 0x1F), wBitMask);
  }
  }
-#line 1097 "C:/Users/Bjarke/Desktop/PIC_Client/PIC_Client.c"
+#line 1136 "C:/Users/Bjarke/Desktop/GraphControl-PoC/Src/Pic_Server/PIC_Client.c"
 void Execute0(unsigned char vOpcode) {
  volatile unsigned char vDummy;
 
@@ -1251,17 +1294,20 @@ void ENC100DumpState(void) {
  UART1_Write_Text("\r\n");
 }
 
-void ShowPacket(unsigned short * Buffer, unsigned len) {
+void ShowPacket(unsigned short* Buffer, unsigned len)
+{
  char tal[3];
- unsigned PacI, LinI;
+ unsigned PacI,LinI;
 
  UART1_Write_Text("\r\n");
  LinI = 0x00;
- for (PacI = 0; PacI < len; ++PacI) {
+ for(PacI=0;PacI<len;++PacI)
+ {
  ByteToHex(Buffer[PacI], tal);
  UART1_Write_Text(tal);
- UART1_Write_Text(" ");
- if (++LinI == 0x10) {
+ UART1_Write_Text (" ");
+ if(++LinI == 0x10)
+ {
  LinI = 0x00;
  UART1_Write_Text("\r\n");
  }
@@ -1269,10 +1315,14 @@ void ShowPacket(unsigned short * Buffer, unsigned len) {
  UART1_Write_Text("\n\r");
 }
 
-void ClrPacket() {
+void ClrPacket()
+{
  unsigned Len;
  Len = 200;
- do {
+ do
+ {
  Packet[Len] = 0;
- } while (Len--);
+ } while (Len --);
+
+
 }
